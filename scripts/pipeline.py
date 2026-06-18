@@ -11,6 +11,7 @@ Pipeline:
 
 Usage:
     python scripts/pipeline.py --themes themes.yaml
+    python scripts/pipeline.py --themes themes.yaml --force
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import time
 from dataclasses import asdict, dataclass
@@ -30,12 +32,14 @@ import fitz
 import pandas as pd
 import requests
 import yaml
+from dotenv import load_dotenv
 from tqdm import tqdm
 
 
 OPENALEX_BASE = "https://api.openalex.org/works"
 ARXIV_BASE = "https://export.arxiv.org/api/query"
 UNPAYWALL_BASE = "https://api.unpaywall.org/v2"
+PLACEHOLDER_EMAIL = "ton.email@example.com"
 
 
 @dataclass
@@ -58,6 +62,18 @@ class Paper:
 def load_config(path: Path) -> Dict[str, Any]:
     with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def get_contact_email(settings: Dict[str, Any]) -> str:
+    env_email = os.getenv("RAG_PIPELINE_EMAIL", "").strip()
+    if env_email:
+        return env_email
+
+    yaml_email = str(settings.get("email", "")).strip()
+    if yaml_email and yaml_email != PLACEHOLDER_EMAIL:
+        return yaml_email
+
+    return ""
 
 
 def safe_name(text: str, max_len: int = 90) -> str:
@@ -219,7 +235,7 @@ def search_arxiv(theme_name: str, query: str, max_results: int) -> List[Paper]:
 
 
 def get_unpaywall_pdf(doi: str, email: str) -> Optional[str]:
-    if not doi or not email or email == "ton.email@example.com":
+    if not doi or not email or email == PLACEHOLDER_EMAIL:
         return None
 
     url = f"{UNPAYWALL_BASE}/{quote_plus(doi)}"
@@ -332,6 +348,50 @@ def deduplicate_papers(papers: List[Paper]) -> List[Paper]:
     return unique
 
 
+def load_existing_papers(output_dir: Path) -> List[Paper]:
+    json_path = output_dir / "papers.json"
+    rows = []
+
+    if json_path.exists():
+        try:
+            rows = json.loads(json_path.read_text(encoding="utf-8"))
+        except Exception as e:
+            print(f"[WARN] Could not read existing papers index: {e}")
+
+    if not rows:
+        for metadata_path in (output_dir / "themes").glob("*/metadata/*.json"):
+            try:
+                rows.append(json.loads(metadata_path.read_text(encoding="utf-8")))
+            except Exception as e:
+                print(f"[WARN] Could not read metadata file {metadata_path}: {e}")
+
+    papers: List[Paper] = []
+    for row in rows:
+        try:
+            papers.append(Paper(**row))
+        except TypeError as e:
+            print(f"[WARN] Skipping invalid existing paper entry: {e}")
+
+    return papers
+
+
+def theme_has_outputs(output_dir: Path, theme_name: str) -> bool:
+    theme_dir = output_dir / "themes" / safe_name(theme_name)
+    metadata_dir = theme_dir / "metadata"
+    md_dir = theme_dir / "md"
+    pdf_dir = theme_dir / "pdf"
+
+    for directory, pattern in (
+        (metadata_dir, "*.json"),
+        (md_dir, "*.md"),
+        (pdf_dir, "*.pdf"),
+    ):
+        if directory.exists() and any(directory.glob(pattern)):
+            return True
+
+    return False
+
+
 def write_metadata_only_markdown(md_path: Path, paper: Paper) -> None:
     md_path.parent.mkdir(parents=True, exist_ok=True)
     md_content = f"""# {paper.title}
@@ -441,26 +501,48 @@ def save_global_outputs(output_dir: Path, papers: List[Paper]) -> None:
 
 
 def main() -> None:
+    load_dotenv()
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--themes", type=str, default="themes.yaml")
     parser.add_argument("--output", type=str, default="output")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="reprocess all themes, including themes that already have output files",
+    )
     args = parser.parse_args()
 
     config = load_config(Path(args.themes))
     settings = config.get("settings", {})
+    settings["email"] = get_contact_email(settings)
     themes = config.get("themes", [])
 
     output_dir = Path(args.output)
-    all_papers: List[Paper] = []
+    existing_papers = load_existing_papers(output_dir)
+    new_papers: List[Paper] = []
+    skipped_themes = []
 
     for theme in themes:
-        papers = process_theme(theme, settings, output_dir)
-        all_papers.extend(papers)
+        theme_name = theme["name"]
+        if not args.force and theme_has_outputs(output_dir, theme_name):
+            skipped_themes.append(theme_name)
+            print(f"\n=== Theme: {theme_name} ===")
+            print("Already covered in output; skipping. Use --force to reprocess.")
+            continue
 
-    all_papers = deduplicate_papers(all_papers)
+        papers = process_theme(theme, settings, output_dir)
+        new_papers.extend(papers)
+
+    if args.force:
+        all_papers = deduplicate_papers(new_papers + existing_papers)
+    else:
+        all_papers = deduplicate_papers(existing_papers + new_papers)
     save_global_outputs(output_dir, all_papers)
 
     print("\nDone.")
+    print(f"Processed themes: {len(themes) - len(skipped_themes)}")
+    print(f"Skipped existing themes: {len(skipped_themes)}")
     print("Next step: upload output/themes/*/md files into Open WebUI Knowledge/RAG.")
 
 

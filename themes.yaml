@@ -1,0 +1,51 @@
+settings:
+  max_results_per_theme: 20
+  year_from: 2018
+  download_pdfs: true
+  convert_to_md: true
+
+themes:
+  - name: "electrochemistry_machine_learning"
+    query: '"electrochemistry" "machine learning"'
+
+  - name: "ml_electrode_degradation"
+    query: '"machine learning" "electrode degradation"'
+
+  - name: "ai_electrochemical_impedance_spectroscopy"
+    query: '"artificial intelligence" "electrochemical impedance spectroscopy"'
+
+  - name: "deep_learning_battery"
+    query: '"deep learning" "battery degradation"'
+
+  - name: "neural_network_corrosion"
+    query: '"neural network" "corrosion" "electrochemistry"'
+
+  - name: "c01_boolalg_foundations"
+    query: '"Boolean algebra" "lattice" "molecular transformations"'
+
+  - name: "c02_molgraph_represent"
+    query: '"molecular graph" "transformation" "algebra"'
+
+  - name: "c03_reaction_logic"
+    query: '"reaction SMARTS" OR "SMIRKS" "chemical logic"'
+
+  - name: "c04_algebraic_reaction_networks"
+    query: '"chemical reaction network" "algebra" "Petri net"'
+
+  - name: "c05_symbolic_ai_chemistry"
+    query: '"chemical ontology" "logic" "knowledge representation"'
+
+  - name: "c06_ml_molecular_transformations"
+    query: '"graph neural network" "reaction" "molecular transformation"'
+
+  - name: "c07_formal_verification_chemistry"
+    query: '"model checking" "chemical pathway" "temporal logic"'
+
+  - name: "c08_topochemical_algebra"
+    query: '"topological index" "molecular" "graph invariant"'
+
+  - name: "c09_quantum_algebra_molecular_change"
+    query: '"quantum logic" "operator algebra" "molecular"'
+
+  - name: "c10_drug_design_retrosynthesis"
+    query: '"retrosynthesis planning" "drug design" "molecular transformation"'

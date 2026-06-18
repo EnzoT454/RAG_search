@@ -3,11 +3,13 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+.env
+.env.*
+!.env.example
 
 # Local data and generated outputs
 data/
 output/
-themes.yaml
 
 # OS / external drive metadata
 .DS_Store
