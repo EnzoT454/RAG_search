@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local data and generated outputs
+data/
+output/
+themes.yaml
+
+# OS / external drive metadata
+.DS_Store
+._*

@@ -1,0 +1,6 @@
+requests
+feedparser
+pymupdf
+pyyaml
+pandas
+tqdm
