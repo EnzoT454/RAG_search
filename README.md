@@ -72,7 +72,7 @@ Exemple:
 python scripts/pipeline.py --themes themes.yaml
 ```
 
-Le script ne traite que ce nouveau thème. Les anciens thèmes déjà présents dans `output/themes/` sont ignorés.
+Le script ne traite que ce nouveau thème. Les anciens thèmes déjà présents dans `RAG/scientific_articles/` sont ignorés.
 
 Pour forcer le retraitement de tous les thèmes:
 

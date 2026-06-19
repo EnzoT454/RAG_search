@@ -7,31 +7,31 @@ Ce guide explique comment utiliser les fichiers Markdown generes par le pipeline
 Depuis la racine du repo:
 
 ```bash
-find output -name "*.md" | head -20
+find RAG -name "*.md" | head -20
 ```
 
 Compter le nombre de fichiers Markdown:
 
 ```bash
-find output -name "*.md" | wc -l
+find RAG -name "*.md" | wc -l
 ```
 
 Verifier la taille totale du dossier de sortie:
 
 ```bash
-du -sh output
+du -sh RAG
 ```
 
 Ouvrir un dossier de fichiers Markdown pour verifier leur lisibilite:
 
 ```bash
-code output/themes/electrochemistry_machine_learning/md
+code RAG/scientific_articles/electrochemistry_machine_learning/md
 ```
 
 Ou sur macOS:
 
 ```bash
-open output/themes/electrochemistry_machine_learning/md
+open RAG/scientific_articles/electrochemistry_machine_learning/md
 ```
 
 Verifier que le texte est propre. Si les fichiers Markdown contiennent du texte trop melange, des colonnes cassees ou trop de references parasites, il vaut mieux creer des fiches de lecture propres a partir des fichiers bruts.
@@ -41,16 +41,28 @@ Verifier que le texte est propre. Si les fichiers Markdown contiennent du texte 
 La structure attendue ressemble a ceci:
 
 ```text
-output/
-└── themes/
-    ├── electrochemistry_machine_learning/
-    │   └── md/
-    ├── ai_electrochemical_impedance_spectroscopy/
-    │   └── md/
-    ├── deep_learning_battery/
-    │   └── md/
-    └── neural_network_corrosion/
-        └── md/
+RAG/
+├── base_theory/
+│   ├── boolean_algebra/
+│   │   ├── pdf/
+│   │   └── md/
+│   ├── general_chemistry/
+│   ├── organic_chemistry/
+│   ├── electro_chemistry/
+│   ├── graph_theory/
+│   └── machine_learning_basics/
+├── scientific_articles/
+│   ├── electrochemistry_machine_learning/
+│   │   └── md/
+│   ├── ai_electrochemical_impedance_spectroscopy/
+│   │   └── md/
+│   ├── deep_learning_battery/
+│   │   └── md/
+│   └── neural_network_corrosion/
+│       └── md/
+└── clean_notes/
+    ├── fiches_articles/
+    └── syntheses_theoriques/
 ```
 
 Chaque dossier `md/` peut devenir une Knowledge base dans Open WebUI.
@@ -59,10 +71,11 @@ Exemples de correspondance:
 
 | Dossier local | Knowledge base Open WebUI |
 | --- | --- |
-| `electrochemistry_machine_learning/md` | `Electrochemistry_ML` |
-| `ai_electrochemical_impedance_spectroscopy/md` | `EIS_ML` |
-| `deep_learning_battery/md` | `Battery_Degradation_AI` |
-| `neural_network_corrosion/md` | `Corrosion_AI` |
+| `RAG/scientific_articles/electrochemistry_machine_learning/md` | `Electrochemistry_ML` |
+| `RAG/scientific_articles/ai_electrochemical_impedance_spectroscopy/md` | `EIS_ML` |
+| `RAG/scientific_articles/deep_learning_battery/md` | `Battery_Degradation_AI` |
+| `RAG/scientific_articles/neural_network_corrosion/md` | `Corrosion_AI` |
+| `RAG/base_theory/electro_chemistry/md` | `Electrochemistry_BASE` |
 
 ## 3. Demarrer Ollama et Open WebUI
 
@@ -126,7 +139,7 @@ Puis, dans chaque base:
 Exemple:
 
 ```text
-output/themes/ai_electrochemical_impedance_spectroscopy/md/*.md
+RAG/scientific_articles/ai_electrochemical_impedance_spectroscopy/md/*.md
 ```
 
 ## 5. Utiliser la base RAG dans le chat
