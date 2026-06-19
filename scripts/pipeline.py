@@ -7,11 +7,13 @@ Pipeline:
 - Save metadata
 - Download legal open-access PDFs when available
 - Convert PDFs to Markdown using PyMuPDF
+- Convert manually added base-theory PDFs to Markdown
 - Save clean .md files for Open WebUI / RAG
 
 Usage:
     python scripts/pipeline.py --themes themes.yaml
     python scripts/pipeline.py --themes themes.yaml --force
+    python scripts/pipeline.py --themes themes.yaml --base-theory-only
 """
 
 from __future__ import annotations
@@ -327,6 +329,10 @@ def save_metadata_json(path: Path, paper: Paper) -> None:
     path.write_text(json.dumps(asdict(paper), indent=2, ensure_ascii=False), encoding="utf-8")
 
 
+def article_theme_dir(output_dir: Path, theme_name: str) -> Path:
+    return output_dir / safe_name(theme_name)
+
+
 def deduplicate_papers(papers: List[Paper]) -> List[Paper]:
     seen = set()
     unique = []
@@ -359,7 +365,7 @@ def load_existing_papers(output_dir: Path) -> List[Paper]:
             print(f"[WARN] Could not read existing papers index: {e}")
 
     if not rows:
-        for metadata_path in (output_dir / "themes").glob("*/metadata/*.json"):
+        for metadata_path in output_dir.glob("*/metadata/*.json"):
             try:
                 rows.append(json.loads(metadata_path.read_text(encoding="utf-8")))
             except Exception as e:
@@ -376,7 +382,7 @@ def load_existing_papers(output_dir: Path) -> List[Paper]:
 
 
 def theme_has_outputs(output_dir: Path, theme_name: str) -> bool:
-    theme_dir = output_dir / "themes" / safe_name(theme_name)
+    theme_dir = article_theme_dir(output_dir, theme_name)
     metadata_dir = theme_dir / "metadata"
     md_dir = theme_dir / "md"
     pdf_dir = theme_dir / "pdf"
@@ -448,7 +454,7 @@ def process_theme(
         print(f"[WARN] arXiv failed for {theme_name}: {e}")
 
     papers = deduplicate_papers(papers)
-    theme_dir = output_dir / "themes" / safe_name(theme_name)
+    theme_dir = article_theme_dir(output_dir, theme_name)
     pdf_dir = theme_dir / "pdf"
     md_dir = theme_dir / "md"
     metadata_dir = theme_dir / "metadata"
@@ -482,6 +488,79 @@ def process_theme(
     return papers
 
 
+def ensure_base_theory_structure(rag_root: Path, base_theory: List[Dict[str, str]]) -> None:
+    base_dir = rag_root / "base_theory"
+    clean_dir = rag_root / "clean_notes"
+
+    for topic in base_theory:
+        topic_name = safe_name(topic["name"])
+        for subdir in ("pdf", "md", "metadata"):
+            (base_dir / topic_name / subdir).mkdir(parents=True, exist_ok=True)
+
+    (clean_dir / "fiches_articles").mkdir(parents=True, exist_ok=True)
+    (clean_dir / "syntheses_theoriques").mkdir(parents=True, exist_ok=True)
+
+
+def process_base_theory(
+    rag_root: Path,
+    base_theory: List[Dict[str, str]],
+    force: bool,
+) -> List[Paper]:
+    papers: List[Paper] = []
+    base_dir = rag_root / "base_theory"
+
+    for topic in base_theory:
+        topic_name = safe_name(topic["name"])
+        topic_dir = base_dir / topic_name
+        pdf_dir = topic_dir / "pdf"
+        md_dir = topic_dir / "md"
+        metadata_dir = topic_dir / "metadata"
+
+        pdf_dir.mkdir(parents=True, exist_ok=True)
+        md_dir.mkdir(parents=True, exist_ok=True)
+        metadata_dir.mkdir(parents=True, exist_ok=True)
+
+        pdf_paths = sorted(pdf_dir.glob("*.pdf"))
+        print(f"\n=== Base theory: {topic_name} ===")
+        print(f"PDF directory: {pdf_dir}")
+
+        if not pdf_paths:
+            print("No PDF found. Add files manually, then rerun the pipeline.")
+            continue
+
+        for pdf_path in tqdm(pdf_paths, desc=f"Converting {topic_name}"):
+            base = safe_name(pdf_path.stem, 100)
+            md_path = md_dir / f"{base}.md"
+            metadata_path = metadata_dir / f"{base}.json"
+
+            if md_path.exists() and not force:
+                continue
+
+            paper = Paper(
+                theme=topic_name,
+                source="Local base theory PDF",
+                title=pdf_path.stem.replace("_", " ").replace("-", " ").strip() or pdf_path.stem,
+                year=None,
+                authors="Unknown",
+                doi=None,
+                url=str(pdf_path),
+                pdf_url=None,
+                abstract=None,
+                cited_by_count=None,
+                venue="Local reference",
+                local_pdf=str(pdf_path),
+            )
+
+            if pdf_to_markdown(pdf_path, md_path, paper):
+                paper.local_md = str(md_path)
+                save_metadata_json(metadata_path, paper)
+                papers.append(paper)
+            else:
+                print(f"[WARN] Could not convert local PDF: {pdf_path}")
+
+    return papers
+
+
 def save_global_outputs(output_dir: Path, papers: List[Paper]) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -505,11 +584,17 @@ def main() -> None:
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--themes", type=str, default="themes.yaml")
-    parser.add_argument("--output", type=str, default="output")
+    parser.add_argument("--rag-root", type=str, default="RAG")
+    parser.add_argument("--output", type=str, default=None)
     parser.add_argument(
         "--force",
         action="store_true",
         help="reprocess all themes, including themes that already have output files",
+    )
+    parser.add_argument(
+        "--base-theory-only",
+        action="store_true",
+        help="only convert manually added PDFs in RAG/base_theory; skip online article search",
     )
     args = parser.parse_args()
 
@@ -517,8 +602,18 @@ def main() -> None:
     settings = config.get("settings", {})
     settings["email"] = get_contact_email(settings)
     themes = config.get("themes", [])
+    base_theory = config.get("base_theory", [])
 
-    output_dir = Path(args.output)
+    rag_root = Path(args.rag_root)
+    output_dir = Path(args.output) if args.output else rag_root / "scientific_articles"
+    ensure_base_theory_structure(rag_root, base_theory)
+    process_base_theory(rag_root, base_theory, args.force)
+
+    if args.base_theory_only:
+        print("\nDone.")
+        print(f"Base theory Markdown files are in: {rag_root}/base_theory/*/md")
+        return
+
     existing_papers = load_existing_papers(output_dir)
     new_papers: List[Paper] = []
     skipped_themes = []
@@ -543,7 +638,7 @@ def main() -> None:
     print("\nDone.")
     print(f"Processed themes: {len(themes) - len(skipped_themes)}")
     print(f"Skipped existing themes: {len(skipped_themes)}")
-    print("Next step: upload output/themes/*/md files into Open WebUI Knowledge/RAG.")
+    print(f"Next step: upload {output_dir}/*/md and {rag_root}/base_theory/*/md into Open WebUI Knowledge/RAG.")
 
 
 if __name__ == "__main__":

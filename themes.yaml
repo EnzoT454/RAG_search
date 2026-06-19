@@ -4,6 +4,13 @@ settings:
   download_pdfs: true
   convert_to_md: true
 
+base_theory:
+  - name: "boolean_algebra"
+  - name: "general_chemistry"
+  - name: "organic_chemistry"
+  - name: "graph_theory"
+  - name: "machine_learning_basics"
+
 themes:
   - name: "electrochemistry_machine_learning"
     query: '"electrochemistry" "machine learning"'

@@ -9,6 +9,10 @@ venv/
 # Local data and generated outputs
 data/
 output/
+RAG/base_theory/*/pdf/*.pdf
+RAG/base_theory/*/md/
+RAG/base_theory/*/metadata/
+RAG/scientific_articles/
 
 # OS / external drive metadata
 .DS_Store
