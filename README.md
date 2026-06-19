@@ -38,10 +38,10 @@ Modifie `themes.yaml`, surtout:
 Les informations sensibles ne doivent pas être mises dans `themes.yaml`. Mets ton email dans un fichier `.env` local, ignoré par Git:
 
 ```bash
-cp .env.example .env
+printf "RAG_PIPELINE_EMAIL=ton.vrai.email@example.com\n" > .env
 ```
 
-Puis modifie `.env`:
+Ou crée/modifie `.env` manuellement avec:
 
 ```bash
 RAG_PIPELINE_EMAIL=ton.vrai.email@example.com
