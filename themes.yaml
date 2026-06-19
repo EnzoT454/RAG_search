@@ -8,6 +8,7 @@ base_theory:
   - name: "boolean_algebra"
   - name: "general_chemistry"
   - name: "organic_chemistry"
+  - name: "electro_chemistry"
   - name: "graph_theory"
   - name: "machine_learning_basics"
 

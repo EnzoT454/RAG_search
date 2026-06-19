@@ -520,7 +520,11 @@ def process_base_theory(
         md_dir.mkdir(parents=True, exist_ok=True)
         metadata_dir.mkdir(parents=True, exist_ok=True)
 
-        pdf_paths = sorted(pdf_dir.glob("*.pdf"))
+        pdf_paths = sorted(
+            path
+            for path in pdf_dir.glob("*.pdf")
+            if not path.name.startswith(".")
+        )
         print(f"\n=== Base theory: {topic_name} ===")
         print(f"PDF directory: {pdf_dir}")
 

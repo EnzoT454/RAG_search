@@ -93,6 +93,7 @@ RAG/
 │   │   └── metadata/
 │   ├── general_chemistry/
 │   ├── organic_chemistry/
+│   ├── electro_chemistry/
 │   ├── graph_theory/
 │   └── machine_learning_basics/
 ├── scientific_articles/
@@ -115,6 +116,7 @@ Exemples:
 RAG/base_theory/boolean_algebra/pdf/
 RAG/base_theory/general_chemistry/pdf/
 RAG/base_theory/organic_chemistry/pdf/
+RAG/base_theory/electro_chemistry/pdf/
 RAG/base_theory/graph_theory/pdf/
 RAG/base_theory/machine_learning_basics/pdf/
 ```
